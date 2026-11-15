@@ -5,4 +5,5 @@ javac -version
 
 ### Terminal
 javac WordCountSimulator.java
+
 java WordCountSimulator
