@@ -1,3 +1,8 @@
+### Version check 
+java -version
+
+javac -version
+
 ### Compilation
 javac EchoServer.java
 
