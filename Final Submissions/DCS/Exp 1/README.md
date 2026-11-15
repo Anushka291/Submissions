@@ -1,12 +1,13 @@
 ### Compilation
---- javac EchoServer.java
---- javac EchoClient.java
+javac EchoServer.java
+
+javac EchoClient.java
 
 ### 1st Terminal
---- java EchoServer
+java EchoServer
 
 ### 2nd Terminal
---- java EchoClient
+java EchoClient
 
 ### 3rd Terminal 
---- java EchoClient
+java EchoClient
