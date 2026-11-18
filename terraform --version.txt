@@ -1,0 +1,156 @@
+terraform --version
+
+az account show
+
+mkdir terraform-security
+
+cd terraform-security/
+
+ls
+
+nano main.tf
+---------------------------------------------------------------- nano main.tf ---------------------------------------------------------------------
+
+
+terraform {
+  required_version = ">= 1.5.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+  }
+}
+
+# Configure Azure Provider
+provider "azurerm" {
+  features {}
+
+  subscription_id = var.subscription_id
+}
+
+# 1. Create Resource Group
+resource "azurerm_resource_group" "secure_rg" {
+  name     = "rg-terraform-iac-sec"
+  location = "Central India"
+
+  tags = {
+    Environment = "Lab"
+    Purpose     = "IaC Security Practical"
+  }
+}
+
+# 2. Create Secure Storage Account
+resource "azurerm_storage_account" "secure_storage" {
+  name                = var.storage_account_name
+  resource_group_name = azurerm_resource_group.secure_rg.name
+  location            = azurerm_resource_group.secure_rg.location
+
+  account_tier             = "Standard"
+  account_kind             = "StorageV2"
+  account_replication_type = "LRS"
+
+  # SECURITY CONFIGURATIONS
+
+  # Allow HTTPS traffic only
+  https_traffic_only_enabled = true
+
+  # Enforce TLS 1.2
+  min_tls_version = "TLS1_2"
+
+  # Disable anonymous public blob access
+  allow_nested_items_to_be_public = false
+
+  # Disable Shared Key authentication
+  shared_access_key_enabled = true
+
+  # Enable Azure AD OAuth as default
+  default_to_oauth_authentication = true
+
+  # Enable infrastructure encryption
+  infrastructure_encryption_enabled = true
+
+  # Keep network access enabled for portal verification
+  public_network_access_enabled = true
+
+  tags = {
+    Environment = "Lab"
+    Security    = "Enabled"
+  }
+}
+
+# 3. Display Outputs
+output "resource_group_name" {
+  value = azurerm_resource_group.secure_rg.name
+}
+
+output "storage_account_name" {
+  value = azurerm_storage_account.secure_storage.name
+}
+
+output "https_only" {
+  value = azurerm_storage_account.secure_storage.https_traffic_only_enabled
+}
+
+output "tls_version" {
+  value = azurerm_storage_account.secure_storage.min_tls_version
+}
+
+output "public_blob_access" {
+  value = azurerm_storage_account.secure_storage.allow_nested_items_to_be_public
+}
+
+output "shared_key_access" {
+  value = azurerm_storage_account.secure_storage.shared_access_key_enabled
+}
+
+
+terraform init
+nano variables.tf
+-------------------------------------------------------------- nano variables.tf ------------------------------------------------------------------
+
+variable "subscription_id" {
+  description = "Azure Subscription ID"
+  type        = string
+}
+
+variable "storage_account_name" {
+  description = "Unique Storage Account Name"
+  type        = string
+}
+
+
+nano terraform.tfvars
+------------------------------------------------------------- nano terraform.tfvars ---------------------------------------------------------------
+
+subscription_id = "YOUR_SUBSCRIPTION_ID"
+
+storage_account_name = "sttfsec20261114xyz"
+
+
+
+To find subscription id : az account show --query id -o tsv
+
+
+terraform validate
+terraform plan
+terraform apply -> yes
+
+az storage account show --name sttfsec20261114xyz --resource-group rg-terraform-iac-sec --query "{Name:name,SharedKey:allowSharedKeyAccess,HTTPS:enableHttpsTrafficOnly}" -o table
+
+
+1. Verify Resource Group 
+az group show --name rg-terraform-iac-sec --output table
+
+2. List resources
+az resource list --resource-group rg-terraform-iac-sec --output table
+
+3. Verify Storage Account
+az storage account show --name sttfsec20261114xyz --resource-group rg-terraform-iac-sec --output table
+
+4. Verify all security settings together
+az storage account show --name sttfsec20261114xyz --resource-group rg-terraform-iac-sec --query "{HTTPS:enableHttpsTrafficOnly,TLS:minimumTlsVersion,PublicBlobAccess:allowBlobPublicAccess,SharedKey:allowSharedKeyAccess,InfrastructureEncryption:encryption.requireInfrastructureEncryption}" --output table
+
+5. Verify Terraform resources
+terraform state list
